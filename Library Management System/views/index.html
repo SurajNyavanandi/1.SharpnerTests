@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+</head>
+<body>
+     <h1>Books Management System</h1>
+     <label for="name">Book Name:</label>
+     <input type="text" name="name" id="name" placeholder="Please Enter Book Name">
+     <button onclick="postBook()">Submit</button>
+     <h4>Books list</h4>
+     <div id="cont1"></div>
+     <h4>Returned Books</h4>
+     <div id="cont2"></div>
+     
+     
+     
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.7.2/axios.min.js"></script>
+<script>
+    let cont1 = document.querySelector('#cont1');
+    let cont2 = document.querySelector('#cont2');
+    let api = `http://localhost:7000/books`;
+
+    displayBooks();
+
+    function postBook() {
+        let book = {
+            name: document.querySelector('#name').value,
+        };
+        axios.post(api, book)
+            .then((res) => {
+                console.log("Book posted successfully");
+                displayBooks();
+                clearInputs();
+            })
+            .catch((err) => console.log("Error posting book", err));
+    }
+    function displayBooks() {
+        cont1.innerHTML = "";
+        axios.get(api)
+            .then((res) => {
+                let books = res.data;
+                books.forEach((book) => {
+                    let createdAt =new Date(book.createdAt);
+                    let returnTime =new Date(createdAt.getTime()+60*60*1000); 
+                    let currentTime =new Date();
+                    let fine = 0;
+
+                    if (currentTime>returnTime) {
+                        let diffInHours = Math.ceil((currentTime - returnTime) / (60 * 60 * 1000));
+                        fine = diffInHours * 10;
+                    }
+
+                    let div = document.createElement('div');
+                    div.innerHTML = `<ul>
+                                         <li>Book id: ${book.id}</li>
+                                         <li>Book Name: ${book.name}</li>
+                                         <li>Book taken on: ${createdAt.toLocaleString()}</li>
+                                         <li>Book should be returned on: ${returnTime.toLocaleString()}</li>
+                                         <li>Current fine: ₹${fine}</li>
+                                     </ul>
+                                     <button onclick="payFine(this, '${book.id}')">Pay Fine</button>
+                                     <button onclick="returnBook(this,'${book.id}','${book.name}','${returnTime.toLocaleString()}','${fine}')">Return</button>`;
+                    cont1.appendChild(div);
+                });
+            })
+            .catch((err) => console.log("Error displaying the books", err));
+        }
+    function returnBook(returnButton,id,name,returntime,fine){
+                   let div2=document.createElement('div');
+                   div2.innerHTML=`<ul>
+                                     <li>Book id:${id}</li>
+                                     <li>Book Name:${name}</li>
+                                     <li>Fine:${fine}</li>
+                                     <li>Returned on:${returntime}</li>
+                                      </ul>`;
+                    cont2.appendChild(div2);
+      axios.delete(`${api}/${id}`)
+            .then(() => {
+                console.log("Book returned successfully");
+                displayBooks();
+                clearInputs();
+            })
+            .catch((err) => console.log("Error returning book", err));
+    }
+
+    function clearInputs() {
+        document.querySelector('#name').value = "";
+    }
+</script>
+</html>
